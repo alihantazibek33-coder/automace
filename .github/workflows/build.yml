@@ -12,8 +12,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: current
+      - name: Find project
+        id: find
+        run: |
+          if ! find . -name settings.gradle -not -path './.git/*' | grep -q .; then
+            find . -name '*.zip' -not -path './.git/*' -exec unzip -o {} -d extracted \;
+          fi
+          f=$(find . -name settings.gradle -not -path './.git/*' | head -n1)
+          if [ -z "$f" ]; then
+            echo "settings.gradle табылмады. Репода мыналар бар:"
+            find . -not -path './.git/*' -type f
+            exit 1
+          fi
+          echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
       - run: gradle build
+        working-directory: ${{ steps.find.outputs.dir }}
       - uses: actions/upload-artifact@v4
         with:
           name: macebot
-          path: build/libs/*.jar
+          path: ${{ steps.find.outputs.dir }}/build/libs/*.jar
